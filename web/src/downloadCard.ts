@@ -1,0 +1,58 @@
+import type { Run, Result } from '../scoring.mjs';
+import markUrl from '../moon-katana-mark.svg';
+import { badges, toolsLine } from './run';
+
+export async function downloadCard(run: Run, result: Result, rank: string): Promise<void> {
+  await document.fonts.ready;
+  const mark = new Image();
+  mark.src = markUrl;
+  await mark.decode();
+  const canvas = document.createElement('canvas');
+  canvas.width = 1200;
+  canvas.height = 800;
+  const context = canvas.getContext('2d');
+  if (!context) throw Error('Canvas is unavailable.');
+  const background = context.createLinearGradient(0, 0, 1200, 800);
+  background.addColorStop(0, '#29434b');
+  background.addColorStop(1, '#10232b');
+  context.fillStyle = background;
+  context.fillRect(0, 0, 1200, 800);
+  context.strokeStyle = '#58777a';
+  context.lineWidth = 2;
+  context.strokeRect(32, 32, 1136, 736);
+  context.drawImage(mark, 1030, 55, 100, 100);
+  context.fillStyle = '#b3cbc5';
+  context.font = '20px Arial';
+  context.fillText('SEKIRO / REFLECTION OF STRENGTH', 70, 95);
+  context.fillStyle = '#e4ece1';
+  context.font = '48px Georgia';
+  context.fillText(result.boss, 70, 180, 1040);
+  context.fillStyle = '#d7e4d9';
+  context.font = '230px Georgia';
+  context.fillText(result.grade, 65, 420);
+  context.fillStyle = '#e4ece1';
+  context.font = '36px Georgia';
+  context.fillText(result.title, 300, 300, 800);
+  context.font = '22px Arial';
+  context.fillText('Performance grade · Prototype rules v0.1', 300, 350);
+  context.fillText(badges(run).join(' / '), 70, 485);
+  context.fillText(`Healing: ${run.heals} uses     Resurrections: ${run.revives}     Score: ${result.score}/100`, 70, 540);
+  context.font = '19px Arial';
+  context.fillText(toolsLine(run), 70, 585);
+  if (rank.startsWith('Top ')) context.fillText(rank, 70, 615, 1040);
+  context.fillStyle = '#b3cbc5';
+  context.font = '18px Arial';
+  context.fillText('Self-reported · Unverified / Provisional rules, not a global player ranking', 70, 645);
+  context.fillStyle = '#e4ece1';
+  context.font = 'bold 28px Arial';
+  context.fillText('skillissue.gg', 70, 720);
+  const blob = await new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob(value => value ? resolve(value) : reject(Error('Image creation failed.')), 'image/png');
+  });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `skillissue-${run.boss}-${result.grade}.png`;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}

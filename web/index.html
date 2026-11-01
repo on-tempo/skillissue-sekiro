@@ -38,179 +38,9 @@
   </head>
   <body>
     <div id="header-root"></div>
-
     <main>
       <div id="hero-root"></div>
-
-      <section id="challenge" class="workspace">
-        <div class="input-panel">
-          <div class="section-label">
-            <span>01 — THE RUN</span>
-            <span>BOSS REMATCHES ONLY</span>
-          </div>
-          <h2>How did you prevail?</h2>
-          <p class="muted">Tell the story of one successful boss rematch.</p>
-
-          <form id="run-form">
-            <label for="boss">Your opponent</label>
-            <select id="boss" name="boss"></select>
-
-            <div class="field-title">
-              Challenge conditions
-              <span>Recorded as separate badges</span>
-            </div>
-
-            <label class="toggle-row">
-              <div>
-                <strong>Charmless</strong>
-                <small>You returned Kuro’s Charm</small>
-              </div>
-              <input type="checkbox" name="charmless" />
-              <span class="switch"></span>
-            </label>
-
-            <label class="toggle-row">
-              <div>
-                <strong>Demon Bell</strong>
-                <small>The bell’s burden was active</small>
-              </div>
-              <input type="checkbox" name="bell" />
-              <span class="switch"></span>
-            </label>
-
-            <div class="number-grid">
-              <label>
-                Healing uses
-                <input
-                  name="heals"
-                  type="number"
-                  min="0"
-                  max="999"
-                  step="1"
-                  value="2"
-                  required
-                />
-                <small>All healing uses, including Gourds and Pellets</small>
-              </label>
-              <label>
-                Resurrections
-                <input
-                  name="revives"
-                  type="number"
-                  min="0"
-                  max="99"
-                  step="1"
-                  value="0"
-                  required
-                />
-                <small>Times you rose during this fight</small>
-              </label>
-            </div>
-
-            <div class="field-title">
-              Tools of the trade
-              <span>Shown on your card; no penalty</span>
-            </div>
-
-            <div class="check-grid">
-              <label>
-                <input type="checkbox" name="prosthetic" />
-                Prosthetic tools
-              </label>
-              <label>
-                <input type="checkbox" name="art" />
-                Combat Arts
-              </label>
-            </div>
-
-            <label class="confirm">
-              <input name="cleared" type="checkbox" required checked />
-              I defeated this boss in Reflection of Strength.
-            </label>
-
-            <button type="submit" class="primary">
-              Reveal my record <span>→</span>
-            </button>
-
-            <p id="error" role="alert"></p>
-            <p class="fine">
-              Self-reported, unverified · Submitted records are stored with a
-              pseudonymous key to calculate rankings · No game account connection
-            </p>
-          </form>
-        </div>
-
-        <div class="output-panel">
-          <div class="section-label">
-            <span>02 — THE PROOF</span>
-            <span id="result-state">EXAMPLE RECORD</span>
-          </div>
-
-          <article id="result" aria-live="polite">
-            <div class="card-top">
-              <span>SEKIRO / REFLECTION OF STRENGTH</span>
-              <img
-                class="seal"
-                src="moon-katana-mark.svg"
-                alt="Katana and full moon"
-              />
-            </div>
-
-            <p class="card-kicker">A VICTORY EARNED</p>
-            <h2 id="result-boss">Isshin, the Sword Saint</h2>
-
-            <div class="grade-line">
-              <span id="grade">A</span>
-              <div>
-                <strong id="grade-title">An unwavering victory</strong>
-                <p>Performance grade · Prototype rules v0.1</p>
-              </div>
-            </div>
-
-            <div id="badges" class="badges"></div>
-
-            <div class="metrics">
-              <div>
-                <span>Healing</span>
-                <strong id="heals-out">2<small>uses</small></strong>
-              </div>
-              <div>
-                <span>Resurrections</span>
-                <strong id="revives-out">0<small>times</small></strong>
-              </div>
-              <div>
-                <span>Score</span>
-                <strong id="score-out">90<small>/100</small></strong>
-              </div>
-            </div>
-
-            <p id="tools-out" class="tools"></p>
-            <p id="rank-out" class="rank" aria-live="polite"></p>
-
-            <div class="card-bottom">
-              <span>skillissue.gg</span>
-              <span>SELF-REPORTED · UNVERIFIED</span>
-            </div>
-          </article>
-
-          <div class="explanation">
-            <h3>Behind your grade</h3>
-            <p id="reason"></p>
-            <p class="muted">
-              Charmless and Demon Bell are separate challenge badges.
-              Zero healing does not mean a no-hit run.
-            </p>
-          </div>
-
-          <div class="share-actions">
-            <button id="download" type="button">↓ Download card</button>
-            <button id="share" type="button">↗ Copy record link</button>
-          </div>
-
-          <p id="share-status" role="status" class="fine"></p>
-        </div>
-      </section>
-
+      <div id="score-root"></div>
       <section id="rules" class="rules">
         <div>
           <p class="eyebrow">TRANSPARENT BY DESIGN</p>
@@ -218,38 +48,33 @@
         </div>
         <div>
           <p>
-            Your score is
-            <strong>100 − healing uses × 5 − resurrections × 15</strong>,
+            Your score is <strong>100 − healing uses × 5 − resurrections × 15</strong>,
             with a floor of 0. S: 95+, A: 80–94, B: 60–79, C: below 60.
           </p>
           <p>
-            These are <strong>provisional rules</strong> for this prototype,
-            not a validated measure of skill or a global ranking.
-            Boss difficulty, Charmless, and Demon Bell do not add to this score.
+            These are <strong>provisional rules</strong> for this prototype, not a
+            validated measure of skill or a global ranking. Boss difficulty, Charmless,
+            and Demon Bell do not add to this score.
           </p>
           <p>
-            Rankings compare you only with records submitted to this site,
-            within the same boss and the same Charmless / Demon Bell setting.
-            They are self-reported, and suspicious submissions may be
-            excluded automatically.
+            Rankings compare you only with records submitted to this site, within the same
+            boss and the same Charmless / Demon Bell setting. They are self-reported, and
+            suspicious submissions may be excluded automatically.
           </p>
           <p>
-            Reflection of Strength adjusts Attack Power to a set value.
-            Other stats and items are not normalized here, so equal scores
-            do not imply equal skill.
+            Reflection of Strength adjusts Attack Power to a set value. Other stats and
+            items are not normalized here, so equal scores do not imply equal skill.
             <a
               href="https://support.activision.com/sekiro/articles/boss-rematches-gauntlet-and-more-added-to-sekiro"
               target="_blank"
               rel="noreferrer"
-            >Official rematch guide ↗</a>
+              >Official rematch guide ↗</a
+            >
           </p>
         </div>
       </section>
     </main>
-
     <div id="footer-root"></div>
-
     <script type="module" src="/src/main.tsx"></script>
-    <script type="module" src="app.js"></script>
   </body>
 </html>
