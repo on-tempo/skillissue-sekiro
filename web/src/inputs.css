@@ -1,0 +1,146 @@
+/* Input improvements for the React scoring form. */
+.workspace > *, .input-panel, .output-panel, .count-field {
+  min-width: 0;
+}
+.boss-picker {
+  margin-bottom: 26px;
+}
+.boss-picker > label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+.boss-search {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.boss-search input {
+  flex: 1;
+  min-width: 0;
+  min-height: 46px;
+  padding: 12px;
+  border: 1px solid #455e64;
+  border-radius: 3px;
+  background: #1b3037;
+  color: var(--ink);
+  font-size: 16px;
+}
+.boss-search input::placeholder {
+  color: var(--muted);
+  font-size: 12px;
+}
+.boss-search button {
+  min-height: 46px;
+  padding: 0 12px;
+  border: 1px solid #4c686d;
+  border-radius: 3px;
+  background: #1b3037;
+  color: var(--ink);
+}
+.boss-picker select {
+  min-height: 46px;
+  margin-bottom: 0;
+  font-size: 16px;
+}
+.picker-hint {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.6;
+  margin: 9px 0 0;
+}
+.count-field > label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 9px;
+}
+.count-control {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
+  align-items: center;
+  gap: 6px;
+}
+.count-control button {
+  min-width: 44px;
+  min-height: 46px;
+  padding: 0;
+  border: 1px solid #4c686d;
+  border-radius: 3px;
+  color: var(--ink);
+  background: #243c43;
+  font-size: 22px;
+}
+.number-grid .count-control input {
+  min-width: 0;
+  min-height: 46px;
+  margin: 0;
+  padding: 10px 2px;
+  text-align: center;
+  font-size: 18px;
+  font-variant-numeric: tabular-nums;
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+.count-control input::-webkit-inner-spin-button,
+.count-control input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.count-field small {
+  display: block;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.6;
+  margin-top: 8px;
+}
+.boss-search button:hover:not(:disabled),
+.count-control button:hover:not(:disabled) {
+  background: #355158;
+}
+#run-form button:disabled,
+#run-form fieldset:disabled .boss-search button,
+#run-form fieldset:disabled .count-control button {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+.check-grid {
+  flex-wrap: wrap;
+}
+.check-grid label, .confirm {
+  line-height: 1.7;
+}
+.check-grid label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+}
+.toggle-row {
+  gap: 16px;
+  min-height: 64px;
+}
+.toggle-row .switch {
+  flex-shrink: 0;
+}
+@media (max-width: 480px) {
+  .workspace .number-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 20px;
+  }
+  .count-control {
+    grid-template-columns: 48px minmax(0, 1fr) 48px;
+    gap: 10px;
+  }
+  .count-control button {
+    min-height: 48px;
+  }
+  .number-grid .count-control input {
+    min-height: 48px;
+  }
+  .section-label > span:last-child {
+    text-align: right;
+    overflow-wrap: anywhere;
+  }
+}

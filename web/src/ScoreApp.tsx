@@ -1,8 +1,11 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { BOSSES, evaluate, type Run } from '../scoring.mjs';
+import { evaluate, type Run } from '../scoring.mjs';
 import { initialRecord, recordLink } from './run';
 import { downloadCard } from './downloadCard';
 import { ResultCard } from './ResultCard';
+import { BossSelector } from './BossSelector';
+import { CountInput } from './CountInput';
+import './inputs.css';
 
 type Draft = Omit<Run, 'heals' | 'revives'> & { heals: string; revives: string };
 const draftOf = (run: Run): Draft => ({ ...run, heals: String(run.heals), revives: String(run.revives) });
@@ -120,10 +123,7 @@ export function ScoreApp() {
         <p className="muted">Tell the story of one successful boss rematch.</p>
         <form id="run-form" onSubmit={submit} aria-busy={pending}>
           <fieldset disabled={pending} style={{ border: 0, margin: 0, padding: 0, minWidth: 0 }}>
-            <label htmlFor="boss" style={{ display: 'block', marginBottom: 10 }}>Your opponent</label>
-            <select id="boss" name="boss" value={draft.boss} onChange={e => update({ boss: e.target.value })}>
-              {Object.entries(BOSSES).map(([id, name]) => <option key={id} value={id}>{name}</option>)}
-            </select>
+            <BossSelector value={draft.boss} onChange={boss => update({ boss })} />
             <div className="field-title">Challenge conditions <span>Recorded as separate badges</span></div>
             <label className="toggle-row">
               <div><strong>Charmless</strong><small>You returned Kuro’s Charm</small></div>
@@ -136,14 +136,22 @@ export function ScoreApp() {
               <span className="switch" />
             </label>
             <div className="number-grid">
-              <label>Healing uses
-                <input name="heals" type="number" min="0" max="999" step="1" required value={draft.heals} onChange={e => update({ heals: e.target.value })} />
-                <small>All healing uses, including Gourds and Pellets</small>
-              </label>
-              <label>Resurrections
-                <input name="revives" type="number" min="0" max="99" step="1" required value={draft.revives} onChange={e => update({ revives: e.target.value })} />
-                <small>Times you rose during this fight</small>
-              </label>
+              <CountInput
+                name="heals"
+                label="Healing uses"
+                hint="All healing uses, including Gourds and Pellets"
+                value={draft.heals}
+                max={999}
+                onChange={heals => update({ heals })}
+              />
+              <CountInput
+                name="revives"
+                label="Resurrections"
+                hint="Times you rose during this fight"
+                value={draft.revives}
+                max={99}
+                onChange={revives => update({ revives })}
+              />
             </div>
             <div className="field-title">Tools of the trade <span>Shown on your card; no penalty</span></div>
             <div className="check-grid">
