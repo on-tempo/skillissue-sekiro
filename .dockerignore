@@ -1,4 +1,13 @@
 .git
+**/.venv
+**/node_modules
+**/dist
 **/__pycache__
-*.db
-.env
+**/.pytest_cache
+**/*.pyc
+**/*.db
+**/*.db-*
+**/.env
+**/.env.*
+!**/.env.example
+.DS_Store

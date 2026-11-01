@@ -1,7 +1,14 @@
 """Smoke test: python test_api.py"""
 
-import os, tempfile
+import os, tempfile, re
+from pathlib import Path
 
+# Tests must never touch an environment's production database.
+os.environ.pop("DATABASE_URL", None)
+os.environ.pop("RAILWAY_ENVIRONMENT", None)
+os.environ["TRUST_PROXY_HEADERS"] = "0"
+os.environ["MAX_PER_HOUR"] = "10"
+os.environ["WEB_DIR"] = str(Path(__file__).resolve().parent.parent / "web" / "dist")
 os.environ["DB_PATH"] = os.path.join(tempfile.mkdtemp(), "t.db")
 os.environ["ALLOWED_ORIGINS"] = "http://localhost:4173"
 from fastapi.testclient import TestClient
@@ -10,7 +17,19 @@ import app as backend, db
 c = TestClient(backend.app)
 assert c.get("/healthz").json() == {"ok": True}
 assert c.get("/").status_code == 200 and "skillissue" in c.get("/").text
-assert "javascript" in c.get("/scoring.mjs").headers["content-type"]
+html = c.get("/").text
+scripts = re.findall(r'<script[^>]+src="([^"]+)"', html)
+styles = re.findall(r'<link[^>]+href="([^"]+\.css)"', html)
+assert scripts and styles, "Build the React frontend before running API tests."
+for url in scripts + styles:
+    asset = c.get(url)
+    assert asset.status_code == 200, url
+    assert ("javascript" if url.endswith(".js") else "text/css") in asset.headers["content-type"]
+assert '/src/main.tsx' not in html
+for private_path in ['/src/ScoreApp.tsx', '/package.json', '/app.js', '/scoring.mjs', '/backend/app.py']:
+    assert c.get(private_path).status_code == 404, private_path
+for asset_path in ['/privacy.html', '/og-image.png', '/apple-touch-icon.png', '/moon-katana-mark.svg']:
+    assert c.get(asset_path).status_code == 200, asset_path
 assert len(c.get("/api/whoami").json()["device"]) == 6
 ok = dict(
     boss="isshin",

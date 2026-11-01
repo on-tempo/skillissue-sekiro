@@ -2,7 +2,7 @@
 
 Same origin, so no CORS setup is needed.
 
-Local:   uvicorn app:app --port 8000          (SQLite file, dev secret)
+Local:   npm run build in web/, then uvicorn app:app --port 8000
 Railway: DATABASE_URL + DEVICE_SECRET set as variables; see ../README.md
 The ML pass (detect.py) runs separately as a cron service — never in the request path.
 """
@@ -24,7 +24,7 @@ SECRET = os.environ.get("DEVICE_SECRET", "dev-only-change-me").encode()
 if IS_PROD and SECRET == b"dev-only-change-me":
     sys.exit("DEVICE_SECRET must be set in production (e.g. `openssl rand -hex 32`).")
 WEB_DIR = Path(
-    os.environ.get("WEB_DIR", Path(__file__).resolve().parent.parent / "web")
+    os.environ.get("WEB_DIR", Path(__file__).resolve().parent.parent / "web" / "dist")
 )
 EXTRA_ORIGINS = [o for o in os.environ.get("ALLOWED_ORIGINS", "").split(",") if o]
 MIN_COHORT = 20  # below this, show "collecting data" instead of a percentile
@@ -183,6 +183,9 @@ def percentile(boss: str, score: int, charmless: bool = False, bell: bool = Fals
         conn.close()
 
 
-# Must be last: catches everything not matched above.
-if WEB_DIR.is_dir():
+# Only publish built files. Source code, package files and Python files stay private.
+# During Vite development, the API can start without a frontend build.
+if (WEB_DIR / "index.html").is_file():
     app.mount("/", StaticFiles(directory=WEB_DIR, html=True), name="web")
+elif IS_PROD:
+    raise RuntimeError("Frontend build is missing. Build web/ before starting production.")
