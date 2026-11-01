@@ -1,0 +1,7 @@
+fastapi
+uvicorn
+httpx
+psycopg[binary]
+scikit-learn
+pandas
+numpy

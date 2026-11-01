@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 620 520" fill="none">
+<defs>
+ <radialGradient id="halo"><stop stop-color="#9bb8ad" stop-opacity=".22"/><stop offset="1" stop-color="#9bb8ad" stop-opacity="0"/></radialGradient>
+ <radialGradient id="moon" cx=".3" cy=".25"><stop stop-color="#e7eadb"/><stop offset=".65" stop-color="#cbd5c8"/><stop offset="1" stop-color="#9eafa7"/></radialGradient>
+ <linearGradient id="steel" x1="250" y1="200" x2="300" y2="430" gradientUnits="userSpaceOnUse"><stop stop-color="#edf2e8"/><stop offset=".45" stop-color="#9fb6b6"/><stop offset=".8" stop-color="#d8e6df"/><stop offset="1" stop-color="#728e94"/></linearGradient>
+ <linearGradient id="fog"><stop stop-color="#9db6ab" stop-opacity="0"/><stop offset=".5" stop-color="#9db6ab" stop-opacity=".16"/><stop offset="1" stop-color="#9db6ab" stop-opacity="0"/></linearGradient>
+ <clipPath id="disc"><circle cx="345" cy="205" r="135"/></clipPath>
+</defs>
+<circle cx="345" cy="205" r="240" fill="url(#halo)"/>
+<circle cx="345" cy="205" r="135" fill="url(#moon)"/>
+<g clip-path="url(#disc)" fill="#738e89" opacity=".16"><path d="M290 72l-32 38 12 38 36 7 14 39 31 8 30-40-22-32 9-39z"/><ellipse cx="413" cy="221" rx="42" ry="59"/><ellipse cx="299" cy="271" rx="46" ry="31"/><circle cx="385" cy="111" r="18"/><circle cx="253" cy="207" r="17"/><circle cx="364" cy="302" r="22"/></g>
+<path d="M110 185c140-55 271 25 460-33M125 293c163-45 236 26 430-11" stroke="url(#fog)" stroke-width="25"/>
+<g transform="rotate(35 305 265)">
+ <path d="M293 169C297 288 292 376 274 442C299 430 313 403 314 374L309 169Z" fill="url(#steel)" stroke="#d3e1d9" stroke-width="1.2"/>
+ <path d="M301 173c5 111 1 204-24 265" stroke="#eef2e7" stroke-opacity=".85" stroke-width="1.5"/>
+ <path d="M294 186c5 64 5 114 1 164" stroke="#527278" stroke-width="2"/>
+ <rect x="292" y="62" width="18" height="96" rx="4" fill="#152930" stroke="#79948e" stroke-width="1.5"/>
+ <path d="m293 68 16 12-16 12 16 12-16 12 16 12-16 12 16 12M309 68l-16 12 16 12-16 12 16 12-16 12 16 12-16 12" stroke="#a2b7aa" stroke-width="2.2"/>
+ <rect x="289" y="57" width="24" height="7" rx="2" fill="#91a69a"/>
+ <path d="M272 156q29-10 58 0v7q-29 10-58 0z" fill="#40534e" stroke="#b0c0ad" stroke-width="2"/>
+ <rect x="292" y="166" width="18" height="13" fill="#8ea391"/>
+</g>
+<g stroke="#75928c" stroke-width="1" opacity=".25"><path d="M65 480q10-48 1-80m7 80q14-38 30-56m-35 20-15-13m16 3-9-18M480 480q-8-50 9-90m-2 90q18-53 47-63m-46 21 19-18M535 490q-4-35 10-66"/></g>
+<path d="M25 469c135-32 263 15 555-13" stroke="url(#fog)" stroke-width="30"/>
+</svg>
