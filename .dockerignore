@@ -11,3 +11,8 @@
 **/.env.*
 !**/.env.example
 .DS_Store
+backup-downloads/
+**/*.dump
+**/*.backup
+backup/*.env
+!Dockerfile.backup

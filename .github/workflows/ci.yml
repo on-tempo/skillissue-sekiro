@@ -36,3 +36,9 @@ jobs:
         run: docker build -t skillissue-ci .
       - name: Test inside the production image
         run: docker run --rm skillissue-ci python test_api.py
+      - name: Test backup and restore safeguards without real credentials
+        run: python -m unittest discover -s backup -p 'test_*.py' -v
+      - name: Build backup job image
+        run: docker build -f Dockerfile.backup -t skillissue-backup-ci .
+      - name: Verify backup image tools and tests
+        run: docker run --rm skillissue-backup-ci sh -c 'pg_dump --version && pg_restore --version && python -m unittest discover -s . -p "test_*.py" -v'

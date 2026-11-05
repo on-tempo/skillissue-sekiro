@@ -1,0 +1,18 @@
+{
+  "Rules": [
+    {
+      "ID": "ExpirePostgresBackups",
+      "Status": "Enabled",
+      "Filter": {"Prefix": "postgres/"},
+      "Expiration": {"Days": 30},
+      "NoncurrentVersionExpiration": {"NoncurrentDays": 1},
+      "AbortIncompleteMultipartUpload": {"DaysAfterInitiation": 1}
+    },
+    {
+      "ID": "RemoveExpiredBackupDeleteMarkers",
+      "Status": "Enabled",
+      "Filter": {"Prefix": "postgres/"},
+      "Expiration": {"ExpiredObjectDeleteMarker": true}
+    }
+  ]
+}

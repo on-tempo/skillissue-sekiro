@@ -1,0 +1,16 @@
+# pg_dump 18 can back up PostgreSQL 18 and older supported versions.
+FROM postgres:18-bookworm
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends python3 python3-venv ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+RUN python3 -m venv /opt/backup-venv
+ENV PATH="/opt/backup-venv/bin:$PATH" \
+    PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1
+WORKDIR /backup
+COPY backup/requirements.txt ./requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
+COPY backup/ ./
+# This is a one-shot job, not a PostgreSQL server.
+ENTRYPOINT []
+CMD ["python", "backup.py"]
