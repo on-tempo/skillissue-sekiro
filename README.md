@@ -32,17 +32,18 @@ Records are self-reported. The application does not collect game telemetry or ve
 ## Architecture
 
 ```mermaid
-flowchart TD
-    Browser[Browser: React and TypeScript] -->|HTTP| Web[FastAPI: API and built web assets]
-    Web --> DB[(PostgreSQL)]
-    Maintenance[Separate maintenance job] -->|Cleanup; read-only anomaly review| DB
-    DB -->|pg_dump snapshot| Backup[Separate backup job]
-    Backup -->|Archive and checksum manifest| S3[Private AWS S3 bucket]
+flowchart LR
+    Browser["React"] --> API["FastAPI · Railway"]
+    API --> DB[("PostgreSQL")]
+    DB --> Backup["Backup job"]
+    Backup --> S3["AWS S3"]
 ```
 
-The production image serves the compiled frontend and API from one origin. During development, Vite runs on port 5173 and proxies API requests to FastAPI on port 8000. Local storage defaults to SQLite when `DATABASE_URL` is absent.
+FastAPI serves the React build and API from the same Railway service. In local development, Vite runs separately and proxies API requests to FastAPI.
 
-Maintenance and backup jobs require separately configured services. Deploying the web service does not activate either job. The presence of backup code is not proof that uploads or restores have succeeded; verify a completed run and a real test restore before relying on the backup.
+Scores are calculated in the browser. Revealing a result fetches the matching cohort's ranking without saving anything. Records are written to PostgreSQL only when the user clicks **Contribute this clear**, and the API recalculates the score before saving.
+
+Separate jobs handle expired records, anomaly review, and database backups. The anomaly detector reports candidates without changing rankings. The backup job uploads PostgreSQL snapshots and checksum manifests to S3; it must be configured separately from the web service.
 
 ## Run locally
 
