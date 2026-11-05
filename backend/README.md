@@ -1,31 +1,57 @@
-# skillissue.gg backend (percentile + anomaly detection)
+# Backend
+
+FastAPI serves the built frontend and API. Production uses PostgreSQL; local development defaults to SQLite. See the root README for dependency installation and the React build.
+
+## API flow
+
+- `GET /api/percentile`: read-only comparison for the same boss × Charmless × Demon Bell settings. Reveal uses this endpoint without saving a record.
+- `POST /api/submit`: used by Contribute this clear. Validates the input and recalculates the score before saving. The default limit is 60 new contributions per anonymous visitor per hour.
+- Exact repeats within 24 hours return `submission: duplicate` without adding a row or consuming another quota slot.
+- `GET /api/whoami`: short diagnostic identifier derived from the visitor cookie.
+- `GET /healthz`: database connectivity and storage type (`postgresql` or `sqlite`).
+
+A signed HttpOnly cookie provides an anonymous visitor identifier for up to 30 days. It is independent of proxy IP and user agent. Clearing cookies creates a new identity, so this is a soft contribution limit, not a way to identify unique players.
+
+PostgreSQL advisory transaction locks serialize each visitor's duplicate check, quota check and insert. SQLite uses `BEGIN IMMEDIATE`. Production refuses to start without `DATABASE_URL` and a random `DEVICE_SECRET` of at least 32 characters. Replicas must share the same database and secret.
+
+## Rankings
+
+At least 20 eligible records are needed in a cohort. Below that, the response reports `collecting`, the current count and the minimum count. Expired and excluded records do not count.
+
+Top percentage is `ceil(100 * (strictly better records + 1) / total records)`, bounded to 1–100. Ties share a rank. It compares submitted records, not verified player skill. Charmless and Demon Bell define separate cohorts rather than adding points.
+
+## Maintenance
+
+Run these commands from `backend/` with the Python environment active:
 
 ```sh
-pip install -r requirements.txt
-python test_api.py                       # API smoke test
-python simulate.py                       # detector evaluation on synthetic data
-DEVICE_SECRET=$(openssl rand -hex 32) uvicorn app:app --port 8000
-python detect.py --dry-run               # review flags first
-python detect.py                         # apply (run via cron, e.g. hourly)
+python cleanup.py
+python detect.py
 ```
 
-## Flow
-- `POST /api/submit` validates (same rules as `scoring.mjs`), computes the score **server-side**, applies
-  realtime rules (10/hour rate limit, 24h exact-duplicate exclusion), stores the raw log.
-- `GET /api/percentile` returns "top N%" within `boss x charmless x bell`, excluding flagged rows,
-  and `collecting` until the cohort has 20+ records.
-- `detect.py` (offline): per-device features -> Isolation Forest -> flag only if outlier AND an explainable rule fires.
-  Flagged records are excluded from stats, not deleted. Every flag has a human-readable reason.
+Cleanup deletes records older than `RETENTION_DAYS` (default 90). Schedule it separately; rankings filter out expired rows even before cleanup runs.
 
-## Known limits (read before trusting it)
-- **One-shot perfect submissions are invisible** (stealth = 0% in simulation). Behaviour-based detection needs
-  several submissions per device. Self-reported data cannot be fully protected; keep the "self-reported" wording.
-- Slow farmers are mostly missed at contamination 0.10 (raising it trades recall for false positives).
-- Devices are `HMAC(ip|user-agent)`: shared IPs (dorms, cafes) with identical browsers can look like one heavy user,
-  and VPN users can look like many. Never auto-ban; review flags.
-- Simulation numbers depend on the generator in `simulate.py`. Re-tune `contamination` and the rule thresholds on real data.
-- Hashed IPs are still personal data in some jurisdictions (GDPR). Add a privacy notice and a retention limit.
-- Percentile responses look identical for flagged/unflagged records on purpose.
+The detector computes behavior features and runs Isolation Forest when at least 30 visitor keys have three submissions each. A model outlier with an explainable signal becomes a review candidate. Both normal execution and `--dry-run` leave database flags unchanged. Historical ML exclusions remain until separately reviewed.
 
-## Frontend integration
-The web app submits once per explicit Reveal action and caches identical runs in the browser session. New records do not get submitted when opening a shared link or the initial example. See the root README for running the combined service.
+Candidates do not prove cheating. Self-reported inputs, cookie resets and isolated fabricated runs limit detection. Simulation results describe the synthetic generator, not production accuracy.
+
+## Tests
+
+From the repository root:
+
+```sh
+npm --prefix web run build
+(cd backend && python test_api.py)
+(cd backend && python simulate.py)
+```
+
+`test_api.py` uses temporary SQLite storage. `simulate.py` uses its own synthetic dataset.
+
+`test_postgres.py` requires an explicit `TEST_DATABASE_URL`. It accepts only loopback hosts and database names beginning with `skillissue_test_`; never supply a production URL. It creates a random schema and removes only that schema when finished.
+
+```sh
+# After setting TEST_DATABASE_URL to a disposable local PostgreSQL database:
+(cd backend && python test_postgres.py)
+```
+
+GitHub Actions provides a disposable PostgreSQL 18 service. Tests cover persistence through a separate connection, simultaneous duplicate submissions, concurrent submissions at the hourly limit, read-only ranking lookup and separate challenge cohorts. No Railway or AWS credentials are needed in CI.

@@ -140,11 +140,12 @@ python -m unittest discover -s backup -p 'test_*.py' -v
 ```
 
 - `test_api.py` uses a temporary SQLite database and checks built assets, source-file exclusion, validation, scoring, duplicate handling, rate limits, and percentile responses.
+- `test_postgres.py` runs against an explicitly configured, disposable local PostgreSQL database. It tests persistence, concurrent duplicates, concurrent quota enforcement and read-only cohort queries. CI supplies PostgreSQL 18; no production credentials are used. See [backend test instructions](backend/README.md#tests).
 - `simulate.py` evaluates anomaly detection using an isolated synthetic dataset; it does not populate the application database.
 - `detect.py --dry-run` reads the configured database and reports candidates without applying flags. Small datasets are skipped.
 - Backup tests mock database tools and uploads. They do not establish that real PostgreSQL or S3 access works.
 
-The GitHub Actions workflow checks frontend types/builds, API behavior, both Docker images, and backup/restore safeguards. Check the workflow run for its actual status. Live PostgreSQL connectivity, cloud credentials, and a real restore require separate verification.
+The GitHub Actions workflow checks frontend types/builds, SQLite and PostgreSQL API behavior, both Docker images, and backup/restore safeguards. Check the workflow run for its actual status. Live PostgreSQL connectivity, cloud credentials, and a real restore require separate verification.
 
 ## Deployment
 
@@ -195,7 +196,8 @@ backend/
   detect.py               Batch anomaly detection
   cleanup.py              Retention cleanup
   simulate.py             Synthetic evaluation
-  test_api.py             API and built-asset integration tests
+  test_api.py             SQLite API and built-asset integration tests
+  test_postgres.py        PostgreSQL persistence and concurrency tests
 web/
   src/
     PageChrome.tsx        Header, hero, footer
