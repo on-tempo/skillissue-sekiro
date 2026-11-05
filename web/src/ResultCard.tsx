@@ -5,6 +5,8 @@ import { badges, toolsLine } from './run';
 export function ResultCard({ run, result, rank }: {
   run: Run; result: Result; rank: string;
 }) {
+  const top = rank.match(/^Top (\d+)%/);
+  const collecting = rank.match(/Rankings unlock at (\d+) records.*\((\d+) so far\)/);
   return (
     <article id="result" aria-live="polite">
       <div className="card-top">
@@ -24,7 +26,12 @@ export function ResultCard({ run, result, rank }: {
         <div><span>Score</span><strong>{result.score}<small>/100</small></strong></div>
       </div>
       <p className="tools">{toolsLine(run)} · Boss rematch</p>
-      <p className="rank" role="status">{rank}</p>
+      <div className="community-ranking" role="status">
+        <span className="ranking-label">COMMUNITY COMPARISON</span>
+        <strong>{top ? `Top ${top[1]}%` : collecting ? `${collecting[2]} / ${collecting[1]} records` : 'Your community rank'}</strong>
+        <p>{rank}</p>
+        <small>Same boss · {run.charmless ? 'Charmless' : 'With charm'} · {run.bell ? 'Demon Bell' : 'No bell'}<br />Record ranking, not a verified player ranking.</small>
+      </div>
       <div className="card-bottom"><span>skillissue.gg</span><span>SELF-REPORTED · UNVERIFIED</span></div>
     </article>
   );

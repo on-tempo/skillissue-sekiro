@@ -1,12 +1,5 @@
-"""Offline anomaly detection. Run on a schedule:  python detect.py [--dry-run]
-
-Design: ML proposes, rules confirm, humans can override.
-  1. Build per-DEVICE behaviour features from the raw log.
-  2. Isolation Forest scores how unusual each device is vs. the crowd.
-  3. A device is flagged only if it is an ML outlier AND shows >=1 hard, explainable signal.
-  4. Flagged submissions get excluded=1 (hidden from percentiles, not deleted/banned).
-Re-running is idempotent: old 'ml' flags are cleared first.
-'manual'/'duplicate' flags are untouched.
+"""Offline review candidates only. Never changes exclusions or proves cheating.
+Existing historical exclusions are left untouched. --dry-run remains compatible.
 """
 
 import argparse
@@ -96,7 +89,7 @@ def hard_signal(r) -> str | None:
     return None
 
 
-def run(conn, contamination=0.10, dry=False, seed=0) -> pd.DataFrame:
+def run(conn, contamination=0.10, dry=True, seed=0) -> pd.DataFrame:
     feats = build_features(conn)
     if len(feats) < 30:
         print(
@@ -115,16 +108,7 @@ def run(conn, contamination=0.10, dry=False, seed=0) -> pd.DataFrame:
         "anomaly", ascending=False
     )
 
-    if not dry:
-        conn.execute(
-            "UPDATE submissions SET excluded=0, flag_reason=NULL WHERE flag_reason='ml' OR flag_reason LIKE 'ml:%'"
-        )
-        conn.executemany(
-            "UPDATE submissions SET excluded=1, flag_reason=? "
-            "WHERE device=? AND flag_reason IS NULL",
-            [("ml:" + row.reason, device) for device, row in flagged.iterrows()],
-        )
-        conn.commit()
+    # Report only, including legacy callers passing dry=False.
     return flagged
 
 
@@ -138,7 +122,7 @@ if __name__ == "__main__":
     a = ap.parse_args()
     conn = db.connect(a.db)
     out = run(conn, a.contamination, a.dry_run)
-    print(f"{'(dry run) ' if a.dry_run else ''}flagged {len(out)} devices")
+    print(f"Review only: {len(out)} candidates; no database flags changed.")
     if len(out):
         print(
             out[["n", "max_per_hour", "frac_perfect", "dup_share", "anomaly", "reason"]]

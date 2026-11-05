@@ -6,6 +6,8 @@ Rows are plain tuples on both backends. SQL is written with `?` placeholders and
 translated to `%s` for Postgres, so the rest of the code is backend-agnostic.
 """
 
+import hashlib
+import threading
 import os
 import sqlite3
 
@@ -15,7 +17,7 @@ BOSS_ALIASES = {'headless': 'headless_ape', 'monk': 'corrupted_monk', 'truemonk'
 
 _COLS = """
   ts          {bigint} NOT NULL,          -- server time, unix seconds
-  device      TEXT    NOT NULL,          -- HMAC(secret, ip|ua); raw IP not stored
+  device      TEXT    NOT NULL,          -- HMAC of anonymous visitor ID; no raw IP
   boss        TEXT    NOT NULL,
   heals       INTEGER NOT NULL,
   revives     INTEGER NOT NULL,
@@ -43,6 +45,21 @@ _INDEXES = [
     "ON submissions(boss, charmless, bell, excluded, score)",
 ]
 _initialised: set = set()
+_schema_lock = threading.Lock()
+
+
+def is_production():
+    return bool(os.environ.get("RAILWAY_ENVIRONMENT") or
+                os.environ.get("RAILWAY_ENVIRONMENT_ID") or
+                os.environ.get("APP_ENV") == "production")
+
+
+def lock_submission(conn, device):
+    if conn.pg:
+        key = int.from_bytes(hashlib.sha256(device.encode()).digest()[:8], "big", signed=True)
+        conn.execute("SELECT pg_advisory_xact_lock(?)", (key,))
+    else:
+        conn.execute("BEGIN IMMEDIATE")
 
 
 def score_of(heals: int, revives: int) -> int:
@@ -78,18 +95,27 @@ class Conn:
 def connect(target=None) -> Conn:
     """target: sqlite file path, or None -> DATABASE_URL (Postgres) / DB_PATH (SQLite)."""
     url = None if target else os.environ.get("DATABASE_URL")
+    if not target and is_production() and not url:
+        raise RuntimeError("DATABASE_URL is required in production.")
     if url:
         import psycopg
 
         conn, ddl, key = Conn(psycopg.connect(url), True), _PG, url
     else:
         path = target or os.environ.get("DB_PATH", "skillissue.db")
-        conn, ddl, key = Conn(sqlite3.connect(path), False), _SQLITE, path
-    if key not in _initialised:
-        for stmt in ddl + _INDEXES:
-            conn.execute(stmt)
-        conn.commit()
-        _initialised.add(key)
+        conn, ddl, key = Conn(sqlite3.connect(path, timeout=30), False), _SQLITE, path
+    try:
+        with _schema_lock:
+            if key not in _initialised:
+                if conn.pg:
+                    conn.execute("SELECT pg_advisory_xact_lock(734812901)")
+                for stmt in ddl + _INDEXES:
+                    conn.execute(stmt)
+                conn.commit()
+                _initialised.add(key)
+    except Exception:
+        conn.close()
+        raise
     return conn
 
 

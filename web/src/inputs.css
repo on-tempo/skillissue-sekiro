@@ -144,3 +144,10 @@
     overflow-wrap: anywhere;
   }
 }
+.community-ranking { margin: 24px 0; padding: 20px; border: 1px solid #78958e; border-radius: 12px; background: #152c32; }
+.community-ranking .ranking-label { display: block; font-size: 11px; letter-spacing: .12em; color: #a6bbb7; }
+.community-ranking > strong { display: block; margin: 8px 0; font-size: clamp(24px, 5vw, 38px); color: #e1e6d9; }
+.community-ranking p { margin: 8px 0; font-size: 14px; line-height: 1.6; }
+.community-ranking small { color: #a6bbb7; line-height: 1.6; }
+.contribution-panel { margin: 20px 0; }
+.contribution-panel button:disabled { opacity: .55; cursor: default; }

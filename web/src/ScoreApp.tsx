@@ -29,12 +29,15 @@ export function ScoreApp() {
   const [record, setRecord] = useState(initial.run);
   const [label, setLabel] = useState(initial.shared ? 'SHARED RECORD · UNVERIFIED' : 'EXAMPLE RECORD');
   const [error, setError] = useState(initial.error);
-  const [rank, setRank] = useState('');
+  const [rank, setRank] = useState('Reveal your record to compare with the community.');
   const [pending, setPending] = useState(false);
   const [shareStatus, setShareStatus] = useState('');
   const [fallbackLink, setFallbackLink] = useState('');
   const [saving, setSaving] = useState(false);
-  const cache = useRef(new Map<string, string>());
+  const [canContribute, setCanContribute] = useState(false);
+  const [contribution, setContribution] = useState('');
+  const [contributing, setContributing] = useState(false);
+  const currentKey = useRef('');
   const busy = useRef(false);
   const controller = useRef<AbortController | null>(null);
   const result = evaluate(record);
@@ -44,11 +47,11 @@ export function ScoreApp() {
     setDraft(previous => ({ ...previous, ...patch }));
     setLabel('CHANGES PENDING · REVEAL AGAIN');
     setError('');
+    setCanContribute(false);
   }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (busy.current) return;
     let run: Run;
     try {
       if (!draft.heals.trim() || !draft.revives.trim()) throw Error('Enter both counts.');
@@ -64,31 +67,71 @@ export function ScoreApp() {
     setShareStatus('');
     setFallbackLink('');
     const key = JSON.stringify(run);
-    const cached = cache.current.get(key);
-    if (cached !== undefined) { setRank(cached); return; }
-    busy.current = true;
+    currentKey.current = key;
+    setCanContribute(true);
+    setContribution('');
+    controller.current?.abort();
+    const requestController = new AbortController();
+    controller.current = requestController;
     setPending(true);
     setRank('Checking your rank…');
-    controller.current = new AbortController();
-    const timeout = window.setTimeout(() => controller.current?.abort(), 15000);
+    const timeout = window.setTimeout(() => requestController.abort(), 15000);
+    try {
+      const params = new URLSearchParams({ boss: run.boss, score: String(evaluate(run).score),
+        charmless: String(run.charmless), bell: String(run.bell) });
+      const response = await fetch(`/api/percentile?${params}`, {
+        credentials: 'same-origin', signal: requestController.signal,
+      });
+      if (!response.ok) throw Error('Community rankings are temporarily unavailable.');
+      const text = rankingText({ percentile: await response.json() });
+      if (controller.current === requestController) setRank(text);
+    } catch {
+      if (controller.current === requestController) {
+        setRank('Ranking unavailable. Your score is ready; Reveal again to retry.');
+      }
+    } finally {
+      clearTimeout(timeout);
+      if (controller.current === requestController) setPending(false);
+    }
+  }
+
+  async function contribute() {
+    if (busy.current || !canContribute) return;
+    busy.current = true;
+    setContributing(true);
+    const run = record;
+    const key = JSON.stringify(run);
+    // This POST owns the newest ranking for this record.
+    controller.current?.abort();
+    controller.current = null;
+    setPending(false);
+    const postController = new AbortController();
+    const timeout = window.setTimeout(() => postController.abort(), 15000);
     try {
       const response = await fetch('/api/submit', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: key, signal: controller.current.signal,
+        method: 'POST', credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' }, body: key,
+        signal: postController.signal,
       });
-      if (response.status === 429) throw Error('Too many submissions. Wait before trying again.');
-      if (!response.ok) throw Error('Could not submit this record. Your local card is still available.');
-      const text = rankingText(await response.json());
-      cache.current.set(key, text);
-      setRank(text);
+      if (response.status === 429) throw Error('Contribution limit reached. Keep calculating freely; save again later.');
+      if (!response.ok) throw Error('Could not save. Your score and card are still available.');
+      const data = await response.json();
+      const text = rankingText(data);
+      if (currentKey.current === key) {
+        setRank(text);
+        setCanContribute(false);
+        setContribution(data.submission === 'duplicate'
+          ? 'Already contributed within 24 hours. Not counted again.'
+          : 'Record contributed. Thank you!');
+      }
     } catch (cause) {
-      setRank('Community rankings are temporarily unavailable.');
-      setError(cause instanceof Error && cause.name !== 'AbortError'
-        ? cause.message : 'The request timed out or was cancelled. You can try Reveal again.');
+      if (currentKey.current === key) setContribution(
+        cause instanceof Error && cause.name !== 'AbortError' ? cause.message
+          : 'Save timed out. Retry safely; identical records are counted once.');
     } finally {
       clearTimeout(timeout);
       busy.current = false;
-      setPending(false);
+      setContributing(false);
     }
   }
 
@@ -122,7 +165,7 @@ export function ScoreApp() {
         <h2>How did you prevail?</h2>
         <p className="muted">Tell the story of one successful boss rematch.</p>
         <form id="run-form" onSubmit={submit} aria-busy={pending}>
-          <fieldset disabled={pending} style={{ border: 0, margin: 0, padding: 0, minWidth: 0 }}>
+          <fieldset style={{ border: 0, margin: 0, padding: 0, minWidth: 0 }}>
             <BossSelector value={draft.boss} onChange={boss => update({ boss })} />
             <div className="field-title">Challenge conditions <span>Recorded as separate badges</span></div>
             <label className="toggle-row">
@@ -159,10 +202,10 @@ export function ScoreApp() {
               <label><input type="checkbox" name="art" checked={draft.art} onChange={e => update({ art: e.target.checked })} /> Combat Arts</label>
             </div>
             <label className="confirm"><input type="checkbox" name="cleared" required checked={draft.cleared} onChange={e => update({ cleared: e.target.checked })} /> I defeated this boss in Reflection of Strength.</label>
-            <button type="submit" className="primary" disabled={pending}>{pending ? 'Submitting…' : 'Reveal my record'} <span>→</span></button>
+            <button type="submit" className="primary" >Reveal my record <span>→</span></button>
           </fieldset>
           <p id="error" role="alert">{error}</p>
-          <p className="fine">Self-reported, unverified · Submitted records are stored with a pseudonymous key to calculate rankings · No game account connection</p>
+          <p className="fine">Calculate as often as you like. Reveal only looks up rankings; use Contribute to add this clear to community statistics.</p>
         </form>
       </div>
       <div className="output-panel">
@@ -172,6 +215,13 @@ export function ScoreApp() {
           <h3>Behind your grade</h3>
           <p>100 base points − {record.heals} healing uses × 5 − {record.revives} resurrections × 15 = {result.score} points{result.score === 0 ? ' (minimum 0)' : ''}. Grade {result.grade}.</p>
           <p className="muted">Charmless and Demon Bell are separate challenge badges. Zero healing does not mean a no-hit run.</p>
+        </div>
+        <div className="contribution-panel">
+          <button type="button" className="primary" onClick={contribute} disabled={!canContribute || contributing || pending}>
+            {contributing ? 'Contributing…' : 'Contribute this clear'}
+          </button>
+          <p className="fine">Only contribute a real completed rematch. Up to 60 new records per browser per hour by default; exact repeats count once within 24 hours.</p>
+          <p role="status">{contribution}</p>
         </div>
         <div className="share-actions">
           <button type="button" onClick={save} disabled={saving}>{saving ? 'Creating image…' : '↓ Download card'}</button>

@@ -35,7 +35,7 @@ Records are self-reported. The application does not collect game telemetry or ve
 flowchart TD
     Browser[Browser: React and TypeScript] -->|HTTP| Web[FastAPI: API and built web assets]
     Web --> DB[(PostgreSQL)]
-    Maintenance[Separate maintenance job] -->|Cleanup and anomaly flags| DB
+    Maintenance[Separate maintenance job] -->|Cleanup; read-only anomaly review| DB
     DB -->|pg_dump snapshot| Backup[Separate backup job]
     Backup -->|Archive and checksum manifest| S3[Private AWS S3 bucket]
 ```
@@ -109,26 +109,17 @@ Charmless and Demon Bell do not add points. They define separate ranking cohorts
 
 Scores describe resource use under the site's provisional rules, not overall player skill. They do not normalize boss difficulty, other character stats, or item effects. Zero healing does not imply a no-hit run.
 
-Only an explicit **Reveal** action submits a record. Initial examples and opening shared links do not create submissions. Successful responses for identical inputs are cached for the current page load. Exact repeats from the same device key within 24 hours are stored but excluded from the percentile cohort.
+**Reveal** calculates locally and retrieves a read-only ranking. It never inserts a record, and calculation/lookup has no application submission quota. **Contribute this clear** explicitly saves the displayed record. Exact repeats from the same visitor within 24 hours return success without creating another row.
 
-The API computes scores independently of the frontend. Percentiles compare eligible site submissions for the same boss and challenge conditions; they are not global Sekiro player rankings.
+Rankings compare eligible records from the retention window for the same boss × Charmless × Demon Bell settings. At least 20 records are required; otherwise the card displays the current count. The displayed top percentage is `ceil(100 × (number of strictly better records + 1) / cohort size)`, bounded to 1–100. Ties share a rank. This is a record comparison, not a verified or unique-player skill percentile.
 
 ## Submission filtering
 
-The API rejects invalid values, unsupported bosses, and records not marked as cleared. By default, a device key can submit at most 10 records per hour.
+The API validates types, boss and clear status, and calculates scores independently. The default limit is **60 new contributions per anonymous visitor per hour**. Repeated records and read-only comparisons do not consume that quota. PostgreSQL transaction advisory locks serialize each visitor's duplicate/limit check and insertion; SQLite uses `BEGIN IMMEDIATE`.
 
-`backend/detect.py` is a batch process that:
+A signed HttpOnly cookie supplies a stable anonymous identifier for up to 30 days, independent of proxy IP or user agent. Clearing cookies can bypass this soft limit. Old IP-based keys remain historical records until retention cleanup; there is no identity migration.
 
-1. Groups eligible submissions by a pseudonymous device key.
-2. Computes eight behavior features: submission count, peak hourly volume, perfect-record share, repeated-record share, boss variety, median time gap, mean score, and score variation.
-3. Fits a 300-tree Isolation Forest with a default contamination setting of 0.10.
-4. Excludes records only when the model flags the device key **and** an explainable rule matches.
-
-The additional rules look for hourly bursts, repeated identical records, or a high share of zero-healing/zero-resurrection records. The model requires at least 30 device keys with three eligible submissions each. Exclusion reasons are saved as `ml:<reason>`; records are not deleted or accounts banned.
-
-Device keys are derived from IP and user-agent data using HMAC. Shared networks and VPNs can affect their reliability. Forwarded client-IP headers are ignored by default; only enable trust after verifying the reverse proxy configuration.
-
-One-shot fabricated records may go undetected, and legitimate submissions can be flagged. Synthetic evaluation measures behavior on the included generator, not production fraud-detection accuracy.
+`backend/detect.py` groups records by visitor, computes eight behavior features and runs a 300-tree Isolation Forest when at least 30 keys have three submissions each. An outlier plus an explainable signal becomes a **review candidate only**. Running with or without `--dry-run` never changes database flags. Historical ML exclusions remain unchanged pending manual review. Candidates are not evidence of cheating, and synthetic evaluation is not production accuracy.
 
 ## Tests and CI
 
@@ -172,16 +163,16 @@ The `railway*.json` files record intended deployment settings. For new services,
 
 | Variable | Purpose |
 | --- | --- |
-| `DATABASE_URL` | PostgreSQL connection string; absent means SQLite |
-| `DEVICE_SECRET` | HMAC secret; required when `DATABASE_URL` or `RAILWAY_ENVIRONMENT` is set |
+| `DATABASE_URL` | Required in production; SQLite fallback is local-only |
+| `DEVICE_SECRET` | Random HMAC secret, at least 32 characters; required for PostgreSQL/production |
 | `WEB_DIR` | Built asset directory; Docker sets `/app/web/dist` |
-| `MAX_PER_HOUR` | Submission limit; default `10` |
+| `MAX_PER_HOUR` | New contributions per visitor/hour; default `60` |
 | `RETENTION_DAYS` | Submission retention; default `90` |
-| `TRUST_PROXY_HEADERS` | Defaults to `0`; enable only for a verified trusted proxy |
+| `APP_ENV` | Set `production` outside Railway to require PostgreSQL |
 
 Environment examples document variable names; `.env` files are not automatically loaded. Keep actual connection strings and credentials out of Git. SQLite records are not automatically migrated when switching to PostgreSQL.
 
-Use one web replica for the current implementation. The rate-limit check and insert are not an atomic distributed limiter, and schema initialization is not a migration framework.
+Replicas must share the same PostgreSQL database and DEVICE_SECRET. Submission transactions coordinate through PostgreSQL. Schema initialization is not a migration framework. `/healthz` reports `storage: postgresql` or `sqlite`.
 
 ### S3 backup environment
 
